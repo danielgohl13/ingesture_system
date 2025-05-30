@@ -51,6 +51,9 @@ ENV/
 # Environment variables
 .env
 
+# Experiments folder
+experiments/
+
 # OS generated files
 .DS_Store
 .DS_Store?
