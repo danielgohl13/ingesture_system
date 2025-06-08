@@ -93,7 +93,7 @@ Gohl, Pedro Daniel; Spellen, Amanda Nicole; Queiroz, Laura Isabelle; Souto, Edua
 │   ├── model_trainer.py    # Training utilities
 │   ├── train.py            # Main training script
 │   └── utils.py            # Utility functions
-├── experiments/            # Experiment results (ignored by git)
+├── experiments/            # Experiment results 
 ├── .gitignore
 └── README.md
 ```
