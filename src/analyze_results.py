@@ -27,11 +27,24 @@ def calculate_metrics(confusion_matrices):
         raise ValueError("No confusion matrices provided")
         
     n_folds = len(confusion_matrices)
+    n_classes = confusion_matrices[0].shape[0] if hasattr(confusion_matrices[0], 'shape') else len(confusion_matrices[0])
+    
+    # Initialize metrics
     metrics = {
         'accuracy': [],
         'precision': [],
         'recall': [],
         'f1': []
+    }
+    
+    # Initialize per-class metrics
+    class_metrics = {
+        f'class_{i}': {
+            'precision': [],
+            'recall': [],
+            'f1': [],
+            'support': []
+        } for i in range(n_classes)
     }
     
     # Calculate metrics for each fold
@@ -48,13 +61,25 @@ def calculate_metrics(confusion_matrices):
         
         if not y_true:  # Skip if no samples in this fold
             continue
-            
+        
+        # Calculate overall metrics
         metrics['accuracy'].append(accuracy_score(y_true, y_pred))
         metrics['precision'].append(precision_score(y_true, y_pred, average='weighted', zero_division=0))
         metrics['recall'].append(recall_score(y_true, y_pred, average='weighted', zero_division=0))
         metrics['f1'].append(f1_score(y_true, y_pred, average='weighted', zero_division=0))
+        
+        # Calculate per-class metrics
+        precision = precision_score(y_true, y_pred, average=None, zero_division=0)
+        recall = recall_score(y_true, y_pred, average=None, zero_division=0)
+        f1 = f1_score(y_true, y_pred, average=None, zero_division=0)
+        
+        for i in range(n_classes):
+            class_metrics[f'class_{i}']['precision'].append(precision[i] if i < len(precision) else 0)
+            class_metrics[f'class_{i}']['recall'].append(recall[i] if i < len(recall) else 0)
+            class_metrics[f'class_{i}']['f1'].append(f1[i] if i < len(f1) else 0)
+            class_metrics[f'class_{i}']['support'].append(np.sum(np.array(y_true) == i))
     
-    # Calculate mean and std for each metric
+    # Calculate mean and std for overall metrics
     summary = {
         metric: {
             'mean': np.mean(values),
@@ -63,7 +88,26 @@ def calculate_metrics(confusion_matrices):
         for metric, values in metrics.items()
     }
     
-    return metrics, summary
+    # Calculate mean and std for per-class metrics
+    class_summary = {}
+    for class_name, metrics_dict in class_metrics.items():
+        class_summary[class_name] = {
+            'precision': {
+                'mean': np.mean(metrics_dict['precision']),
+                'std': np.std(metrics_dict['precision'])
+            },
+            'recall': {
+                'mean': np.mean(metrics_dict['recall']),
+                'std': np.std(metrics_dict['recall'])
+            },
+            'f1': {
+                'mean': np.mean(metrics_dict['f1']),
+                'std': np.std(metrics_dict['f1'])
+            },
+            'support': int(np.mean(metrics_dict['support']))
+        }
+    
+    return metrics, summary, class_summary
 
 def plot_metrics(metrics, save_path):
     """Plot metrics across folds."""
@@ -141,7 +185,7 @@ def plot_learning_curves(history, results_path):
     plt.savefig(os.path.join(results_path, 'overall_accuracy.png'))
     plt.close()
 
-def save_results_to_csv(metrics, summary, save_path):
+def save_results_to_csv(metrics, summary, class_summary, save_path):
     """Save metrics to CSV files."""
     # Save per-fold metrics
     df_folds = pd.DataFrame(metrics)
@@ -157,6 +201,21 @@ def save_results_to_csv(metrics, summary, save_path):
         for metric, data in summary.items()
     }).transpose()
     df_summary.to_csv(os.path.join(save_path, 'summary_metrics.csv'))
+    
+    # Save per-class metrics
+    class_data = []
+    for class_name, metrics_dict in class_summary.items():
+        row = {'Class': class_name}
+        for metric, values in metrics_dict.items():
+            if metric != 'support':
+                row[f'{metric}_mean'] = values['mean']
+                row[f'{metric}_std'] = values['std']
+            else:
+                row['support'] = values
+        class_data.append(row)
+    
+    df_class = pd.DataFrame(class_data)
+    df_class.to_csv(os.path.join(save_path, 'class_metrics.csv'), index=False)
 
 def main():
     try:
@@ -181,7 +240,7 @@ def main():
         
         # Calculate metrics
         print("Calculando métricas...")
-        metrics, summary = calculate_metrics(confusion_matrices)
+        metrics, summary, class_summary = calculate_metrics(confusion_matrices)
         
         # Generate and save visualizations
         print("Gerando visualizações...")
@@ -191,15 +250,23 @@ def main():
         
         # Save metrics to CSV
         print("Salvando métricas em arquivos CSV...")
-        save_results_to_csv(metrics, summary, results_path)
+        save_results_to_csv(metrics, summary, class_summary, results_path)
         
         # Print summary
         print("\n=== Resumo dos Resultados ===")
+        print("\n--- Métricas Globais ---")
         for metric, values in summary.items():
             print(f"\n{metric.capitalize()}:")
             print(f"  Média: {values['mean']:.4f}")
             print(f"  Desvio Padrão: {values['std']:.4f}")
         
+        # Print per-class metrics
+        print("\n--- Métricas por Classe ---")
+        for class_name, metrics_dict in class_summary.items():
+            print(f"\n{class_name} (Amostras: {metrics_dict['support']}):")
+            for metric in ['precision', 'recall', 'f1']:
+                print(f"  {metric.capitalize()}: {metrics_dict[metric]['mean']:.4f} ± {metrics_dict[metric]['std']:.4f}")
+            
         print("\nAnálise concluída com sucesso!")
         print(f"Resultados salvos em: {os.path.abspath(results_path)}")
         
