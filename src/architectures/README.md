@@ -96,6 +96,90 @@ def create_model(input_shape, num_classes, config=None):
     return model
 ```
 
+## Arquitetura MS-Conv1D
+
+A arquitetura MS-Conv1D implementa uma rede neural convolucional 1D multi-escala projetada para capturar padrões temporais em diferentes escalas em séries temporais de sensores inerciais.
+
+### Características Principais:
+- **Camadas Convolucionais Múltiplas**: Utiliza múltiplos caminhos com diferentes tamanhos de kernel (3, 5, 7) para capturar padrões em diferentes escalas temporais
+- **Batch Normalization**: Normalização em lote após cada camada convolucional para melhor estabilidade do treinamento
+- **Pooling Estratégico**: Redução de dimensionalidade progressiva para capturar características hierárquicas
+- **Concatenação**: Combinação das saídas dos diferentes caminhos para enriquecer a representação de características
+
+### Implementação:
+
+```python
+import tensorflow as tf
+
+def build_multiscale_conv1d(input_shape, num_classes):
+    """Constrói o bloco principal da MS-Conv1D."""
+    inputs = tf.keras.layers.Input(shape=input_shape)
+    x = inputs
+
+    # Convolução e Pooling Iniciais
+    x = tf.keras.layers.Conv1D(64, kernel_size=3, padding='same', activation='relu')(x)
+    x = tf.keras.layers.BatchNormalization()(x)
+    x = tf.keras.layers.MaxPooling1D(pool_size=2)(x)
+
+    # Bloco Convolucional Multi-Escala
+    branch1 = tf.keras.layers.Conv1D(128, kernel_size=3, padding='same', activation='relu')(x)
+    branch2 = tf.keras.layers.Conv1D(128, kernel_size=5, padding='same', activation='relu')(x)
+    branch3 = tf.keras.layers.Conv1D(128, kernel_size=7, padding='same', activation='relu')(x)
+    x = tf.keras.layers.concatenate([branch1, branch2, branch3], axis=-1)
+    x = tf.keras.layers.BatchNormalization()(x)
+    x = tf.keras.layers.MaxPooling1D(pool_size=2)(x)
+
+    # Camada Convolucional Final
+    x = tf.keras.layers.Conv1D(256, kernel_size=3, padding='same', activation='relu')(x)
+    x = tf.keras.layers.BatchNormalization()(x)
+    x = tf.keras.layers.GlobalAveragePooling1D()(x)
+
+    # Camada de Saída
+    outputs = tf.keras.layers.Dense(num_classes, activation='softmax')(x)
+
+    return tf.keras.Model(inputs=inputs, outputs=outputs)
+
+def create_model(input_shape, num_classes, config=None):
+    """Cria e compila o modelo MS-Conv1D."""
+    if config is None:
+        config = {
+            'optimizer': 'adam',
+            'learning_rate': 0.001,
+            'use_learning_rate_scheduler': True
+        }
+    
+    # Construir o modelo
+    model = build_multiscale_conv1d(input_shape, num_classes)
+    
+    # Configurar otimizador
+    optimizer_name = config.get('optimizer', 'adam').lower()
+    learning_rate = float(config.get('learning_rate', 0.001))
+    
+    if optimizer_name == 'adam':
+        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+    elif optimizer_name == 'sgd':
+        optimizer = tf.keras.optimizers.SGD(learning_rate=learning_rate, momentum=0.9)
+    else:  # rmsprop ou outro
+        optimizer = tf.keras.optimizers.get(optimizer_name)
+        if hasattr(optimizer, 'learning_rate'):
+            optimizer.learning_rate = learning_rate
+    
+    # Configurar função de perda e métricas
+    loss = 'binary_crossentropy' if num_classes == 2 else 'sparse_categorical_crossentropy'
+    metrics = ['accuracy']
+    if num_classes == 2:
+        metrics.append(tf.keras.metrics.AUC(name='auc'))
+    
+    # Compilar o modelo
+    model.compile(
+        optimizer=optimizer,
+        loss=loss,
+        metrics=metrics
+    )
+    
+    return model
+```
+
 ## Requisitos Obrigatórios
 
 1. **Função `create_model`**: 
@@ -290,4 +374,3 @@ Para suporte, consulte:
 - Equipe de desenvolvimento
 
 ## Licença
-
