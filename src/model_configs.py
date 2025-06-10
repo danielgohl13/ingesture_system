@@ -11,6 +11,7 @@ from architectures.ignatov_cnn import create_model as create_ignatov_cnn
 from architectures.senyurek_cnn_lstm import create_senyurek_cnn_lstm
 from architectures.moccia_cnn import create_model as create_moccia_cnn
 from architectures.moccia_cnn_lstm import create_model as create_moccia_cnn_lstm
+from architectures.wang_tcn_mha import create_model as create_wang_tcn_mha
 
 MODEL_CONFIGS = {
     'msconv1d': {
@@ -49,35 +50,39 @@ MODEL_CONFIGS = {
         'description': '1D CNN from "Real-time human activity recognition from accelerometer data" (Ignatov, 2018)',
         'default_args': {
             'l2_reg': 5e-4,
-            'learning_rate': 5e-4,
-            'dropout_rate': 0.5,
         }
     },
     'senyurek_cnn_lstm': {
         'create_fn': create_senyurek_cnn_lstm,
         'name': 'Senyurek CNN-LSTM',
-        'description': 'CNN-LSTM model from "Drink Arm Snippet Detection Using IMU for Real-Time Monitoring of Drink Intake Gestures" (Senyurek et al.)',
-        'default_args': {
-            'learning_rate': 0.001,
-            'dropout_rate': 0.5,
-        }
+        'description': 'CNN-LSTM model from Senyurek et al. (2020)',
+        'default_args': {}
     },
     'moccia_cnn': {
         'create_fn': create_moccia_cnn,
         'name': 'Moccia CNN',
-        'description': 'CNN architecture from "A Novel CNN-Based Approach for Accurate and Robust Gesture Recognition" (Moccia et al.)',
-        'default_args': {
-            'learning_rate': 0.001,
-            'dropout_rate': 0.5,
-        }
+        'description': 'CNN model from Moccia et al. (2022)',
+        'default_args': {}
     },
     'moccia_cnn_lstm': {
         'create_fn': create_moccia_cnn_lstm,
         'name': 'Moccia CNN-LSTM',
-        'description': 'CNN-LSTM architecture based on the work by Moccia et al. with separate branches for binary and multi-class classification',
-        'default_args': {
-            'learning_rate': 0.001,
-            'dropout_rate': 0.5,
-        }
+        'description': 'CNN-LSTM model from Moccia et al. (2022)',
+        'default_args': {}
     },
+    'wang_tcn_mha': {
+        'create_fn': create_wang_tcn_mha,
+        'name': 'Wang TCN-MHA',
+        'description': 'TCN with Multi-Head Attention for eating speed measurement',
+        'default_args': {
+            'learning_rate': 0.0005,
+            'optimizer': 'adam',
+            'tcn_layers': 9,
+            'tcn_kernels': 64,
+            'tcn_dropout': 0.3,
+            'mha_heads': 8,
+            'mha_key_dim': 16,
+            'fcn_units': 64
+        }
+    }
 }

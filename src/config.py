@@ -12,7 +12,7 @@ EXPERIMENT_BASE_PATH = "/home/danielgohl/Projetos/Mestrado/Novos_experimentos/ex
 EXPERIMENT_TYPE = 'bin'  
 
 # Model Selection
-MODEL_NAME = 'moccia_cnn_lstm'  # Options: 'ignatov_cnn', 'laura_cnn', 'msconv1d', 'cnn_lstm'
+MODEL_NAME = 'wang_tcn_mha'  # Options: 'ignatov_cnn', 'laura_cnn', 'msconv1d', 'cnn_lstm'
 
 # Configuration parameters
 config = {
