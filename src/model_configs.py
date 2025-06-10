@@ -9,6 +9,8 @@ from architectures.food_drink_cnn import create_food_drink_cnn, create_multi_inp
 from architectures.laura_cnn import create_model as create_laura_cnn
 from architectures.ignatov_cnn import create_model as create_ignatov_cnn
 from architectures.senyurek_cnn_lstm import create_senyurek_cnn_lstm
+from architectures.moccia_cnn import create_model as create_moccia_cnn
+from architectures.moccia_cnn_lstm import create_model as create_moccia_cnn_lstm
 
 MODEL_CONFIGS = {
     'msconv1d': {
@@ -49,25 +51,33 @@ MODEL_CONFIGS = {
             'l2_reg': 5e-4,
             'learning_rate': 5e-4,
             'dropout_rate': 0.5,
-            'n_filters': 196,
-            'filters_size': 16,
-            'n_hidden': 1024
         }
     },
     'senyurek_cnn_lstm': {
         'create_fn': create_senyurek_cnn_lstm,
         'name': 'Senyurek CNN-LSTM',
-        'description': 'CNN-LSTM from "Drink Arm Snippet Detection Using IMU for Real-Time Monitoring of Drink Intake Gestures" (Senyurek et al.)',
+        'description': 'CNN-LSTM model from "Drink Arm Snippet Detection Using IMU for Real-Time Monitoring of Drink Intake Gestures" (Senyurek et al.)',
         'default_args': {
-            'dropout_rate': 0.5,      # 50% dropout as per paper
-            'learning_rate': 0.001,   # Learning rate from paper
-            'optimizer': 'sgd',       # SGD with momentum as per paper
-            'momentum': 0.9,          # Momentum value from paper
-            'batch_size': 16,         # Batch size from paper
-            'num_epochs': 3,          # Epochs from paper
-            #'sequence_length': 10,    # 100ms at 100Hz as per paper
-            #'window_size': 512,       # 5.12s at 100Hz as per paper
-            #'sampling_rate': 100      # 100Hz as per paper
+            'learning_rate': 0.001,
+            'dropout_rate': 0.5,
         }
-    }
+    },
+    'moccia_cnn': {
+        'create_fn': create_moccia_cnn,
+        'name': 'Moccia CNN',
+        'description': 'CNN architecture from "A Novel CNN-Based Approach for Accurate and Robust Gesture Recognition" (Moccia et al.)',
+        'default_args': {
+            'learning_rate': 0.001,
+            'dropout_rate': 0.5,
+        }
+    },
+    'moccia_cnn_lstm': {
+        'create_fn': create_moccia_cnn_lstm,
+        'name': 'Moccia CNN-LSTM',
+        'description': 'CNN-LSTM architecture based on the work by Moccia et al. with separate branches for binary and multi-class classification',
+        'default_args': {
+            'learning_rate': 0.001,
+            'dropout_rate': 0.5,
+        }
+    },
 }

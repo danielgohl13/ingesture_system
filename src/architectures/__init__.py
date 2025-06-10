@@ -12,6 +12,8 @@ Available models:
 - senyurek_cnn_lstm: CNN-LSTM from "Drink Arm Snippet Detection Using IMU for Real-Time Monitoring of Drink Intake Gestures" (Senyurek et al.)
 - food_drink_cnn: Optimized 1D CNN for Food and Drink Intake Recognition
 - multi_input_food_drink: Multi-domain network for Food and Drink Intake Recognition
+- moccia_cnn: CNN architecture from "A Novel CNN-Based Approach for Accurate and Robust Gesture Recognition" (Moccia et al.)
+- moccia_cnn_lstm: Moccia CNN-LSTM architecture
 """
 
 # Import all model creation functions to make them available at the package level
@@ -21,6 +23,8 @@ from .msconv1d import create_model as create_msconv1d_model
 from .cnn_lstm import create_cnn_lstm_model
 from .senyurek_cnn_lstm import create_senyurek_cnn_lstm
 from .food_drink_cnn import create_food_drink_cnn, create_multi_input_model
+from .moccia_cnn import create_moccia_cnn, create_model as create_moccia_model
+from .moccia_cnn_lstm import create_moccia_cnn_lstm as create_moccia_cnn_lstm_impl
 
 # Create a dictionary mapping model names to their creation functions
 MODEL_CREATORS = {
@@ -30,7 +34,9 @@ MODEL_CREATORS = {
     'cnn_lstm': create_cnn_lstm_model,
     'senyurek_cnn_lstm': create_senyurek_cnn_lstm,
     'food_drink_cnn': create_food_drink_cnn,
-    'multi_input_food_drink': create_multi_input_model
+    'multi_input_food_drink': create_multi_input_model,
+    'moccia_cnn': create_moccia_model,
+    'moccia_cnn_lstm': create_moccia_cnn_lstm_impl,
 }
 
 def get_model_creator(model_name):

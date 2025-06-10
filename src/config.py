@@ -12,7 +12,7 @@ EXPERIMENT_BASE_PATH = "/home/danielgohl/Projetos/Mestrado/Novos_experimentos/ex
 EXPERIMENT_TYPE = 'bin'  
 
 # Model Selection
-MODEL_NAME = 'senyurek_cnn_lstm'  # Options: 'ignatov_cnn', 'laura_cnn', 'msconv1d', 'cnn_lstm'
+MODEL_NAME = 'moccia_cnn_lstm'  # Options: 'ignatov_cnn', 'laura_cnn', 'msconv1d', 'cnn_lstm'
 
 # Configuration parameters
 config = {
@@ -23,7 +23,7 @@ config = {
     "columns": ['accX', 'accY', 'accZ', 'asX', 'asY', 'asZ'],
     
     # Training Configuration - Senyurek et al. parameters
-    "num_epochs": 3,           # Número de épocas de treinamento (conforme o artigo)
+    "num_epochs": 20,           # Número de épocas de treinamento (conforme o artigo)
     "batch_size": 16,          # Tamanho do batch (conforme o artigo)
     "patience": 3,            # Early stopping com paciência igual ao número de épocas
     "optimizer": "adam",        # SGD with momentum conforme o artigo
@@ -43,7 +43,7 @@ WINDOW_SIZE = int(config["window_size_seconds"] * SAMPLING_RATE)
 OVERLAP_SIZE = int(WINDOW_SIZE * config["overlap_fraction"])
 
 #MANUAL_EXPERIMENT_NAME = f"{MODEL_NAME}_{EXPERIMENT_TYPE}_{config['optimizer']}_bs{config['batch_size']}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
-MANUAL_EXPERIMENT_NAME = "/home/danielgohl/Projetos/Mestrado/Novos_experimentos/experiments/senyurek_cnn_lstm_bin_sgd_bs16_2025-05-25_01-21-09"
+MANUAL_EXPERIMENT_NAME = "moccia_cnn_lstm_bin_adam_bs16_2025-06-09_23-20-12"
 
 def get_experiment_path():
     """Get the experiment path"""
