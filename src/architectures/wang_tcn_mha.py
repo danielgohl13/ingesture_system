@@ -1,5 +1,6 @@
 import tensorflow as tf
 from tensorflow.keras import layers, Model
+import numpy as np
 
 def create_model(input_shape: tuple, num_classes: int, config: dict = None) -> tf.keras.Model:
     """
@@ -81,14 +82,20 @@ def create_model(input_shape: tuple, num_classes: int, config: dict = None) -> t
     x = layers.LayerNormalization()(x)
 
     # ========= 3. Módulo FCN (Fully Connected Network) =========
-    # Bloco classificador final com 2 camadas lineares 
+    # Reduz a dimensão temporal para obter um vetor de características
+    x = layers.GlobalAveragePooling1D()(x)
     
-    # Primeira camada densa com 64 neurônios e ativação ReLU 
-    # Aplicada a cada passo de tempo da sequência.
+    # Camada densa intermediária
     x = layers.Dense(fcn_units, activation='relu')(x)
+    x = layers.Dropout(tcn_dropout)(x)
     
-    # Camada de saída final com ativação softmax 
-    outputs = layers.Dense(num_classes, activation='softmax')(x)
+    # Camada de saída final
+    # Para classificação binária, usamos 1 neurônio com ativação sigmoid
+    # Para multiclasse, usamos softmax com num_classes neurônios
+    if num_classes == 2:
+        outputs = layers.Dense(1, activation='sigmoid')(x)
+    else:
+        outputs = layers.Dense(num_classes, activation='softmax')(x)
     
     # ========= 4. Criação e Compilação do Modelo =========
     model = Model(inputs=inputs, outputs=outputs)
@@ -101,11 +108,18 @@ def create_model(input_shape: tuple, num_classes: int, config: dict = None) -> t
         if hasattr(optimizer, 'learning_rate'):
             optimizer.learning_rate.assign(learning_rate)
 
-    # Função de perda Cross-Entropy foi usada para classificação 
+    # Configuração da função de perda e métricas
+    if num_classes == 2:
+        loss = 'binary_crossentropy'
+        metrics = ['accuracy']
+    else:
+        loss = 'categorical_crossentropy'
+        metrics = ['accuracy']
+    
     model.compile(
         optimizer=optimizer,
-        loss='sparse_categorical_crossentropy',
-        metrics=['accuracy', 'sparse_categorical_accuracy']
+        loss=loss,
+        metrics=metrics
     )
     
     return model

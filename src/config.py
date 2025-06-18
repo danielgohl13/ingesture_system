@@ -9,10 +9,10 @@ EXPERIMENT_BASE_PATH = "/home/danielgohl/Projetos/Mestrado/Novos_experimentos/ex
 
 # Experiment Configuration
 # Experiment Type: 'mc' for multiclass, 'bin' for binary
-EXPERIMENT_TYPE = 'bin'  
+EXPERIMENT_TYPE = 'mc'  
 
 # Model Selection
-MODEL_NAME = 'wang_tcn_mha'  # Options: 'ignatov_cnn', 'laura_cnn', 'msconv1d', 'cnn_lstm'
+MODEL_NAME = 'msconv1d'  # Options: 'ignatov_cnn', 'laura_cnn', 'msconv1d', 'cnn_lstm'
 
 # Configuration parameters
 config = {
@@ -43,7 +43,7 @@ WINDOW_SIZE = int(config["window_size_seconds"] * SAMPLING_RATE)
 OVERLAP_SIZE = int(WINDOW_SIZE * config["overlap_fraction"])
 
 #MANUAL_EXPERIMENT_NAME = f"{MODEL_NAME}_{EXPERIMENT_TYPE}_{config['optimizer']}_bs{config['batch_size']}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
-MANUAL_EXPERIMENT_NAME = "moccia_cnn_lstm_bin_adam_bs16_2025-06-09_23-20-12"
+MANUAL_EXPERIMENT_NAME = "msconv1d_mc_adam_3s_50hz_bs16"
 
 def get_experiment_path():
     """Get the experiment path"""

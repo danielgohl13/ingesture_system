@@ -57,20 +57,28 @@ def train_model(model, X_train, y_train, X_val=None, y_val=None, epochs=None, ba
     y_train_original_shape = y_train.shape
     y_val_original_shape = y_val.shape if y_val is not None else None
     
-    # Check if we need to convert to one-hot encoding
-    num_classes = model.output_shape[-1] if len(model.output_shape) > 1 else 2
+    # Get number of classes from model output shape
+    if len(model.output_shape) > 1:
+        num_classes = model.output_shape[-1]
+    else:
+        num_classes = 1
     
-    # Convert training labels
-    if len(y_train.shape) == 1 or (len(y_train.shape) > 1 and y_train.shape[1] == 1):
-        # Convert to one-hot if we have more than 2 classes or if it's binary but needs to be one-hot
-        if num_classes > 2 or (num_classes == 2 and len(y_train.shape) == 1):
+    # Convert training labels to one-hot encoding if needed
+    if len(y_train.shape) == 1 or y_train.shape[-1] != num_classes:
+        if num_classes > 1:
             y_train = to_categorical(y_train, num_classes=num_classes)
+        else:
+            # For binary classification with single output
+            y_train = y_train.reshape(-1, 1)
     
     # Convert validation labels if they exist
     if y_val is not None:
-        if len(y_val.shape) == 1 or (len(y_val.shape) > 1 and y_val.shape[1] == 1):
-            if num_classes > 2 or (num_classes == 2 and len(y_val.shape) == 1):
+        if len(y_val.shape) == 1 or y_val.shape[-1] != num_classes:
+            if num_classes > 1:
                 y_val = to_categorical(y_val, num_classes=num_classes)
+            else:
+                # For binary classification with single output
+                y_val = y_val.reshape(-1, 1)
     
     # Prepare callbacks for early stopping and model checkpointing
     if fold_info and 'fold_number' in fold_info:
