@@ -53,6 +53,7 @@ ENV/
 
 # Experiments folder
 experiments/
+reports/
 
 # OS generated files
 .DS_Store

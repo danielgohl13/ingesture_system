@@ -9,28 +9,41 @@ EXPERIMENT_BASE_PATH = "/home/danielgohl/Projetos/Mestrado/Novos_experimentos/ex
 
 # Experiment Configuration
 # Experiment Type: 'mc' for multiclass, 'bin' for binary
-EXPERIMENT_TYPE = 'bin'  
+EXPERIMENT_TYPE = 'mc'  
 
 # Model Selection
 MODEL_NAME = 'wang_tcn_mha'  # Options: 'ignatov_cnn', 'laura_cnn', 'msconv1d', 'cnn_lstm'
 
+MODEL_TYPE = 'classic'  # 'dl' para deep learning, 'classic' para modelos clássicos
+CLASSIC_MODEL_NAME = 'SVM'  # Options: 'RandomForest', 'SVM', 'KNN', 'AdaBoost', 'DecisionTree', 'NaiveBayes'
+#alterar  linha 82 para recomeçar experimento - comentar a linha 82 e descomentar a linha 83 para usar o nome gerado automaticamente
+
 # Configuration parameters
 config = {
     # Data Processing Configuration
-    "sampling_rate": 50,  # 50Hz
-    "window_size_seconds": 3,  # Janela de 3 segundos (150 amostras)
-    "overlap_fraction": 0.5,  # 50% de sobreposição
+    "sampling_rate": 50,
+    "window_size_seconds": 4,
+    "overlap_fraction": 0.5,
     "columns": ['accX', 'accY', 'accZ', 'asX', 'asY', 'asZ'],
     
-    # Training Configuration - Senyurek et al. parameters
-    "num_epochs": 20,           # Número de épocas de treinamento (conforme o artigo)
-    "batch_size": 16,          # Tamanho do batch (conforme o artigo)
-    "patience": 3,            # Early stopping com paciência igual ao número de épocas
-    "optimizer": "adam",        # SGD with momentum conforme o artigo
-    "learning_rate": 0.001,    # Taxa de aprendizado do artigo
-    "momentum": 0.9,           # Momentum do SGD conforme o artigo
-    "use_learning_rate_scheduler": False,  # Não usar agendador de taxa de aprendizado
+    # Deep Learning Training Configuration
+    "num_epochs": 20,
+    "batch_size": 16,
+    "patience": 3,
+    "optimizer": "adam",
+    "learning_rate": 0.001,
+    "momentum": 0.9,
+    "use_learning_rate_scheduler": False,
+}
 
+# Classic Model Hyperparameters
+classic_model_config = {
+    'RandomForest': {'n_estimators': 100, 'random_state': 42},
+    'SVM': {'kernel': 'rbf', 'C': 1.0, 'gamma': 'scale', 'random_state': 42},
+    'KNN': {'n_neighbors': 5},
+    'AdaBoost': {'n_estimators': 50, 'random_state': 42},
+    'DecisionTree': {'random_state': 42},
+    'NaiveBayes': {},
 }
 
 # Derive mode and number of classes based on experiment type
@@ -43,7 +56,7 @@ WINDOW_SIZE = int(config["window_size_seconds"] * SAMPLING_RATE)
 OVERLAP_SIZE = int(WINDOW_SIZE * config["overlap_fraction"])
 
 #MANUAL_EXPERIMENT_NAME = f"{MODEL_NAME}_{EXPERIMENT_TYPE}_{config['optimizer']}_bs{config['batch_size']}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
-MANUAL_EXPERIMENT_NAME = "moccia_cnn_lstm_bin_adam_bs16_2025-06-09_23-20-12"
+#MANUAL_EXPERIMENT_NAME = "RandomForest_bin_2026-01-04_15-33-50"
 
 def get_experiment_path():
     """Get the experiment path"""
@@ -54,6 +67,23 @@ def get_experiment_path():
 def get_dataset_files():
     """Get dataset files"""
     return sorted(glob.glob(os.path.join(DATASET_PATH, "*.pkl")))
+
+    # Experiment Name
+def get_experiment_name():
+    """Generate experiment name based on configuration."""
+    model_identifier = MODEL_NAME if MODEL_TYPE == 'dl' else CLASSIC_MODEL_NAME
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    
+    if MODEL_TYPE == 'dl':
+        return f"{model_identifier}_{EXPERIMENT_TYPE}_{config['optimizer']}_bs{config['batch_size']}_{timestamp}"
+    else:
+        return f"{model_identifier}_{EXPERIMENT_TYPE}_{config['window_size_seconds']}_{config['sampling_rate']}_{timestamp}"
+
+## Mudar para gerar automatico (Se for a primeira vez rodando ou usar o nome do experimento para continuar)
+MANUAL_EXPERIMENT_NAME = get_experiment_name()
+#MANUAL_EXPERIMENT_NAME = "RandomForest_bin_2026-01-04_15-33-50"
+
+
 
 # Calculate derived parameters
 config["window_size"] = int(config["window_size_seconds"] * config["sampling_rate"])

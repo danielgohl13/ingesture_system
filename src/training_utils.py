@@ -1,10 +1,16 @@
 import os
+import json
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
 import tensorflow as tf
+
 from utils import carregar_progresso, salvar_progresso
+from model_configs import MODEL_CONFIGS
+from config import MODEL_TYPE, MODEL_NAME, CLASSIC_MODEL_NAME, config
+from feature_extractor import extract_features
+from classic_model_trainer import train_classic_model
 
 def plot_confusion_matrix(cm, labels, title='Confusion Matrix'):
     """
@@ -23,31 +29,28 @@ def plot_confusion_matrix(cm, labels, title='Confusion Matrix'):
     plt.ylabel('True')
     plt.show()
 
-from model_configs import MODEL_CONFIGS
-from config import MODEL_NAME, config
-import json
-import os
-
-def save_training_config(base_path, config, model_name):
+def save_training_config(base_path, config, model_name, model_type):
     """Save training configuration to a file.
     
     Args:
         base_path (str): Base path for the experiment
         config (dict): Configuration dictionary
         model_name (str): Name of the model being used
+        model_type (str): Type of the model ('dl' or 'classic')
     """
     config_path = os.path.join(base_path, 'training_config.json')
     
-    # Create a copy of config to avoid modifying the original
     config_copy = config.copy()
     
-    # Add model-specific information
-    config_copy.update({
-        'model_name': model_name,
-        'model_description': MODEL_CONFIGS[model_name]['description']
-    })
-    
-    # Save to file
+    config_copy['model_type'] = model_type
+    if model_type == 'dl':
+        config_copy.update({
+            'model_name': model_name,
+            'model_description': MODEL_CONFIGS[model_name]['description']
+        })
+    else:
+        config_copy['model_name'] = model_name
+
     with open(config_path, 'w') as f:
         json.dump(config_copy, f, indent=4, sort_keys=True)
     
@@ -68,164 +71,130 @@ def train_leave_one_subject_out(
     num_classes=2
 ):
     """
-    Perform Leave-One-Subject-Out (LOSO) cross-validation with progress tracking.
+    Perform Leave-One-Subject-Out (LOSO) cross-validation with progress tracking.   
     
     Args:
-        filenames (list): List of dataset file paths
-        load_data_func (callable): Function to load data
-        preprocess_data_func (callable): Function to preprocess data
-        sliding_window_func (callable): Function to create sliding windows
-        model_train_func (callable): Function to train and evaluate model
-        base_path (str, optional): Base path for progress tracking
-        mode (int, optional): Classification mode
-        sampling_rate (int, optional): Sampling rate
-        window_size (int, optional): Window size
-        overlap_size (int, optional): Overlap size
-        num_classes (int, optional): Number of classes
-    
-    Returns:
-        dict: Dictionary of results for each leave-out iteration
+        filenames (list): List of file paths to process
+        load_data_func (function): Function to load training and test data
+        preprocess_data_func (function): Function to preprocess the data
+        sliding_window_func (function): Function to apply sliding window
+        train_model_func (function): Function to train the model
+        base_path (str): Base path for saving results and progress
+        mode (int): Mode for data loading (default: 1)
+        sampling_rate (int): Sampling rate for preprocessing (default: 50)
+        window_size (int): Size of the sliding window (default: 200)
+        overlap_size (int): Overlap size for sliding window (default: 0)
+        num_classes (int): Number of classes for the model (default: 2)
     """
     if not base_path:
         raise ValueError("base_path must be provided for progress tracking")
         
-    # Load progress if it exists
     leave_out, dict_info_names, confusion_matrices = carregar_progresso(base_path)
-    model = None  # Model will be created for each fold
+    model = None
     print(f"Resuming from subject {leave_out} of {len(filenames)}")
     
-    # Initialize or load results
     results = dict_info_names.get('results', {})
+    dict_info_names['total_subjects'] = len(filenames)
     
     try:
         while leave_out < len(filenames):
             filename = filenames[leave_out]
             print(f'Processing file {leave_out + 1}/{len(filenames)}: {filename}')
             
-            # Create a copy of filenames and remove the current test file
             selected_files = filenames.copy()
             selected_files.pop(leave_out)
             
-            # Load data
             train_x, train_y, test_x, test_y = load_data_func(selected_files, filename, mode)
-            print(f"After load_data - train_x shape: {train_x.shape}, test_x shape: {test_x.shape}")
             
-            # Create fold directory and prepare scaler path
             fold_dir = os.path.join(base_path, 'models', f'fold_{leave_out + 1}')
             os.makedirs(fold_dir, exist_ok=True)
             scaler_path = os.path.join(fold_dir, 'scaler.save')
             
-            # Preprocess data and save scaler
             train_x_normalized, train_y_downsampled, \
             test_x_normalized, test_y_downsampled = preprocess_data_func(
                 train_x, train_y, test_x, test_y, sampling_rate, scaler_path
             )
-            print(f"After preprocess - train_x shape: {train_x_normalized.shape}, test_x shape: {test_x_normalized.shape}")
             
-            # Apply sliding window
-            window = window_size or 200  # Default window size of 200
-            stride = window - (overlap_size or 0)  # Calculate stride based on overlap
+            window = window_size or 200
+            stride = window - (overlap_size or 0)
             
             train_x, train_y = sliding_window_func(
                 train_x_normalized, train_y_downsampled, 
                 window, stride
             )
-            print(f"After sliding window - train_x shape: {train_x.shape}")
             
             test_x, test_y = sliding_window_func(
                 test_x_normalized, test_y_downsampled, 
                 window, stride
             )
             
-            # Set up fold info
             fold_info = {
                 'fold_number': leave_out + 1,
                 'test_subject': os.path.basename(filenames[leave_out]),
                 'total_folds': len(filenames),
-                'base_path': base_path  # Adicionando base_path ao fold_info
+                'base_path': base_path
             }
             
-            # Get model configuration and create model
-            model_config = MODEL_CONFIGS[MODEL_NAME]
-            input_shape = (train_x.shape[1], train_x.shape[2])
+            model_results = {}
+
+            if MODEL_TYPE == 'classic':
+                print("--- Running Classic Model Pipeline ---")
+                # 1. Extract features
+                print("Extracting features for classic model...")
+                train_x_features = extract_features(train_x)
+                test_x_features = extract_features(test_x)
+                print(f"Feature extraction complete. Train shape: {train_x_features.shape}, Test shape: {test_x_features.shape}")
+
+                # 2. Train classic model
+                model_results = train_classic_model(
+                    train_x_features,
+                    train_y,
+                    test_x_features,
+                    test_y,
+                    fold_info=fold_info
+                )
+                save_training_config(base_path, config, CLASSIC_MODEL_NAME, MODEL_TYPE)
+
+            else: # Deep Learning Pipeline
+                print("--- Running Deep Learning Pipeline ---")
+                model_config = MODEL_CONFIGS[MODEL_NAME]
+                input_shape = (train_x.shape[1], train_x.shape[2])
+                
+                save_training_config(base_path, config, MODEL_NAME, MODEL_TYPE)
+                
+                model = model_config['create_fn'](
+                    input_shape=input_shape,
+                    num_classes=num_classes,
+                    config=config
+                )
+                print(f"Using {model_config['name']}: {model_config['description']}")
+                
+                model_results = train_model_func(
+                    model,
+                    train_x,
+                    train_y,
+                    test_x,
+                    test_y,
+                    epochs=config.get('num_epochs', 50),
+                    batch_size=config.get('batch_size', 32),
+                    fold_info=fold_info
+                )
             
-            # Get training config
-            from config import config
-            
-            # Save training configuration
-            if base_path:
-                save_training_config(base_path, config, MODEL_NAME)
-            
-            # Create model with config
-            model = model_config['create_fn'](
-                input_shape=input_shape,
-                num_classes=num_classes,
-                config=config
-            )
-            print(f"Using {model_config['name']}: {model_config['description']}")
-            print(f"Optimizer: {config.get('optimizer', 'adam')}, Learning Rate: {config.get('learning_rate', 0.001)}")
-            print(f"Batch size: {config.get('batch_size', 32)}")
-            print(f"Epochs: {config.get('num_epochs', 50)}")
-            print(f"Early stopping patience: {config.get('patience', 10)}")
-            
-            # Train the model for this fold
-            from config import config
-            model_results = train_model_func(
-                model,
-                train_x,
-                train_y,
-                test_x,
-                test_y,
-                epochs=config.get('num_epochs', 50),  # Use config value, default to 50
-                batch_size=config.get('batch_size', 32),  # Use config value, default to 32
-                fold_info=fold_info
-            )
-            
-            # Save progress
-            salvar_progresso(
-                leave_out,
-                dict_info_names,
-                confusion_matrices,
-                model,
-                base_path,
-                model_results.get('history', None)
-            )
-            
-            # Save confusion matrix as a figure
-            plt.figure()
-            sns.heatmap(model_results['confusion_matrix'], annot=True, fmt='d')
-            plt.title(f'Confusion Matrix - Fold {leave_out}')
-            results_dir = os.path.join(base_path, 'results')
-            os.makedirs(results_dir, exist_ok=True)
-            plt.savefig(os.path.join(results_dir, f'confusion_matrix_fold_{leave_out}.png'))
-            plt.close()
-            
-            # Store results and save progress
+            # Save progress and results
             results[leave_out] = model_results
             confusion_matrices.append(model_results['confusion_matrix'])
             dict_info_names['results'] = results
             dict_info_names['last_completed'] = leave_out
-            dict_info_names['total_subjects'] = len(filenames)
             
-            # Model is already saved by ModelCheckpoint in model_trainer.py
-            # We'll just verify the best model exists
-            model_save_path = os.path.join(base_path, 'models', f'fold_{leave_out + 1}', 'best_model.h5')
-            if os.path.exists(model_save_path):
-                print(f"Best model saved to {model_save_path}")
-            else:
-                print(f"Warning: No best model found for fold {leave_out + 1}")
-            
-            # Save progress after each successful fold
-            salvar_progresso(leave_out + 1, dict_info_names, confusion_matrices, model, base_path, model_results.get('history', None))
+            salvar_progresso(leave_out + 1, dict_info_names, confusion_matrices, model, base_path, model_results.get('training_history', None))
             print(f"Progress saved for fold {leave_out + 1}")
             
-            # Increment leave_out for next iteration
             leave_out += 1
             
     except Exception as e:
         print(f"Error during training: {str(e)}")
-        # Save progress even if there's an error
-        salvar_progresso(leave_out, dict_info_names, confusion_matrices, model, base_path, model_results.get('history', None) if 'model_results' in locals() else None)
+        history = model_results.get('training_history', None) if 'model_results' in locals() else None
+        salvar_progresso(leave_out, dict_info_names, confusion_matrices, model, base_path, history)
         raise e
     
     return results
