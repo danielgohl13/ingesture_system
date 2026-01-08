@@ -51,13 +51,13 @@ def train_classic_model(X_train, y_train, X_val, y_val, fold_info=None):
     Trains and evaluates a classic machine learning model.
     """
     # 1. Preprocessing: Impute NaNs and scale features
-    imputer = SimpleImputer(strategy='mean')
-    X_train = imputer.fit_transform(X_train)
-    X_val = imputer.transform(X_val)
-    
-    scaler = StandardScaler()
-    X_train = scaler.fit_transform(X_train)
-    X_val = scaler.transform(X_val)
+    #imputer = SimpleImputer(strategy='mean')
+    #X_train = imputer.fit_transform(X_train)
+    #X_val = imputer.transform(X_val)
+    print("tava passando por aqui")
+    #scaler = StandardScaler()
+    #X_train = scaler.fit_transform(X_train)
+    #X_val = scaler.transform(X_val)
 
     # 2. Get and train the model
     model = get_classic_model()

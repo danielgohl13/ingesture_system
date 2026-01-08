@@ -15,7 +15,12 @@ EXPERIMENT_TYPE = 'mc'
 MODEL_NAME = 'wang_tcn_mha'  # Options: 'ignatov_cnn', 'laura_cnn', 'msconv1d', 'cnn_lstm'
 
 MODEL_TYPE = 'classic'  # 'dl' para deep learning, 'classic' para modelos clássicos
-CLASSIC_MODEL_NAME = 'SVM'  # Options: 'RandomForest', 'SVM', 'KNN', 'AdaBoost', 'DecisionTree', 'NaiveBayes'
+CLASSIC_MODEL_NAME = 'KNN'  # Options: 'RandomForest', 'SVM', 'KNN', 'AdaBoost', 'DecisionTree', 'NaiveBayes'
+#para continuar experimento adicione a raiz da pasta do experimento
+#para iniciar novo experimento altere NAME = "None"
+NAME = "KNN_mc_4s_50hz_2026-01-07"
+#NAME = None
+
 #alterar  linha 82 para recomeçar experimento - comentar a linha 82 e descomentar a linha 83 para usar o nome gerado automaticamente
 
 # Configuration parameters
@@ -55,8 +60,6 @@ SAMPLING_RATE = config["sampling_rate"]
 WINDOW_SIZE = int(config["window_size_seconds"] * SAMPLING_RATE)
 OVERLAP_SIZE = int(WINDOW_SIZE * config["overlap_fraction"])
 
-#MANUAL_EXPERIMENT_NAME = f"{MODEL_NAME}_{EXPERIMENT_TYPE}_{config['optimizer']}_bs{config['batch_size']}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
-#MANUAL_EXPERIMENT_NAME = "RandomForest_bin_2026-01-04_15-33-50"
 
 def get_experiment_path():
     """Get the experiment path"""
@@ -72,16 +75,17 @@ def get_dataset_files():
 def get_experiment_name():
     """Generate experiment name based on configuration."""
     model_identifier = MODEL_NAME if MODEL_TYPE == 'dl' else CLASSIC_MODEL_NAME
-    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    timestamp = datetime.now().strftime('%Y-%m-%d')
     
     if MODEL_TYPE == 'dl':
-        return f"{model_identifier}_{EXPERIMENT_TYPE}_{config['optimizer']}_bs{config['batch_size']}_{timestamp}"
+        return f"{model_identifier}_{EXPERIMENT_TYPE}_{config['window_size_seconds']}s_{config['sampling_rate']}hz_{config['optimizer']}_bs{config['batch_size']}_{timestamp}"
     else:
-        return f"{model_identifier}_{EXPERIMENT_TYPE}_{config['window_size_seconds']}_{config['sampling_rate']}_{timestamp}"
+        return f"{model_identifier}_{EXPERIMENT_TYPE}_{config['window_size_seconds']}s_{config['sampling_rate']}hz_{timestamp}"
 
-## Mudar para gerar automatico (Se for a primeira vez rodando ou usar o nome do experimento para continuar)
-MANUAL_EXPERIMENT_NAME = get_experiment_name()
-#MANUAL_EXPERIMENT_NAME = "RandomForest_bin_2026-01-04_15-33-50"
+if NAME != None:
+    MANUAL_EXPERIMENT_NAME = NAME
+else: 
+    MANUAL_EXPERIMENT_NAME = get_experiment_name()
 
 
 
@@ -119,7 +123,10 @@ def get_experiment_path():
     Returns:
         str: Path to experiment artifacts
     """
-    exp_path = os.path.join(EXPERIMENT_BASE_PATH, MANUAL_EXPERIMENT_NAME)
+    # Create subdirectory based on model type
+    model_subdir = 'classic' if MODEL_TYPE == 'classic' else 'deep'
+    exp_path = os.path.join(EXPERIMENT_BASE_PATH, model_subdir, MANUAL_EXPERIMENT_NAME)
+    
     # Create required subdirectories
     os.makedirs(os.path.join(exp_path, 'models'), exist_ok=True)
     os.makedirs(os.path.join(exp_path, 'progress'), exist_ok=True)

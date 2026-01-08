@@ -5,11 +5,19 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-from config import MANUAL_EXPERIMENT_NAME
+from config import MANUAL_EXPERIMENT_NAME, MODEL_TYPE
 
 def load_experiment_data(experiment_name):
     """Load experiment data from progress file."""
-    progress_file = os.path.join('experiments', experiment_name, 'progress', 'progresso.pkl')
+    # Determine the subdirectory based on experiment name or model type
+    model_subdir = 'classic' if MODEL_TYPE == 'classic' else 'deep'
+    
+    # Try new structure first, then fallback to old structure
+    progress_file_new = os.path.join('experiments', model_subdir, experiment_name, 'progress', 'progresso.pkl')
+    progress_file_old = os.path.join('experiments', experiment_name, 'progress', 'progresso.pkl')
+    
+    progress_file = progress_file_new if os.path.exists(progress_file_new) else progress_file_old
+    
     with open(progress_file, 'rb') as f:
         data = pickle.load(f)
         if isinstance(data, tuple):
@@ -225,9 +233,12 @@ def main():
         print(f"Analisando resultados do experimento: {MANUAL_EXPERIMENT_NAME}")
         
         # Create results directory
-        results_path = os.path.join('experiments', MANUAL_EXPERIMENT_NAME, 'results')
+        model_subdir = 'classic' if MODEL_TYPE == 'classic' else 'deep'
+        results_path_new = os.path.join('experiments', model_subdir, MANUAL_EXPERIMENT_NAME, 'results')
+        results_path_old = os.path.join('experiments', MANUAL_EXPERIMENT_NAME, 'results')
+        # Use new structure, create if doesn't exist
+        results_path = results_path_new
         os.makedirs(results_path, exist_ok=True)
-        print(f"Diretório de resultados: {os.path.abspath(results_path)}")
         
         # Load experiment data
         print("Carregando dados do experimento...")
