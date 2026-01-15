@@ -14,12 +14,12 @@ EXPERIMENT_TYPE = 'mc'
 # Model Selection
 MODEL_NAME = 'wang_tcn_mha'  # Options: 'ignatov_cnn', 'laura_cnn', 'msconv1d', 'cnn_lstm'
 
-MODEL_TYPE = 'classic'  # 'dl' para deep learning, 'classic' para modelos clássicos
-CLASSIC_MODEL_NAME = 'KNN'  # Options: 'RandomForest', 'SVM', 'KNN', 'AdaBoost', 'DecisionTree', 'NaiveBayes'
+MODEL_TYPE = 'dl'  # 'dl' para deep learning, 'classic' para modelos clássicos
+CLASSIC_MODEL_NAME = 'RandomForest'  # Options: 'RandomForest', 'SVM', 'KNN', 'AdaBoost', 'DecisionTree', 'NaiveBayes'
 #para continuar experimento adicione a raiz da pasta do experimento
 #para iniciar novo experimento altere NAME = "None"
-NAME = "KNN_mc_4s_50hz_2026-01-07"
-#NAME = None
+#NAME = "SVM_bin_4s_50hz_2026-01-08"
+NAME = None
 
 #alterar  linha 82 para recomeçar experimento - comentar a linha 82 e descomentar a linha 83 para usar o nome gerado automaticamente
 
@@ -34,7 +34,7 @@ config = {
     # Deep Learning Training Configuration
     "num_epochs": 20,
     "batch_size": 16,
-    "patience": 3,
+    "patience": 10,
     "optimizer": "adam",
     "learning_rate": 0.001,
     "momentum": 0.9,
@@ -123,9 +123,11 @@ def get_experiment_path():
     Returns:
         str: Path to experiment artifacts
     """
-    # Create subdirectory based on model type
+    # Create subdirectories based on model type and experiment type
     model_subdir = 'classic' if MODEL_TYPE == 'classic' else 'deep'
-    exp_path = os.path.join(EXPERIMENT_BASE_PATH, model_subdir, MANUAL_EXPERIMENT_NAME)
+    experiment_subdir = 'binary' if EXPERIMENT_TYPE == 'bin' else 'multiclass'
+    
+    exp_path = os.path.join(EXPERIMENT_BASE_PATH, model_subdir, experiment_subdir, MANUAL_EXPERIMENT_NAME)
     
     # Create required subdirectories
     os.makedirs(os.path.join(exp_path, 'models'), exist_ok=True)

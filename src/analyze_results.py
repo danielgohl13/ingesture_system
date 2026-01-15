@@ -5,15 +5,16 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-from config import MANUAL_EXPERIMENT_NAME, MODEL_TYPE
+from config import MANUAL_EXPERIMENT_NAME, MODEL_TYPE, EXPERIMENT_TYPE
 
 def load_experiment_data(experiment_name):
     """Load experiment data from progress file."""
-    # Determine the subdirectory based on experiment name or model type
+    # Determine subdirectories based on model type and experiment type
     model_subdir = 'classic' if MODEL_TYPE == 'classic' else 'deep'
+    experiment_subdir = 'binary' if EXPERIMENT_TYPE == 'bin' else 'multiclass'
     
     # Try new structure first, then fallback to old structure
-    progress_file_new = os.path.join('experiments', model_subdir, experiment_name, 'progress', 'progresso.pkl')
+    progress_file_new = os.path.join('experiments', model_subdir, experiment_subdir, experiment_name, 'progress', 'progresso.pkl')
     progress_file_old = os.path.join('experiments', experiment_name, 'progress', 'progresso.pkl')
     
     progress_file = progress_file_new if os.path.exists(progress_file_new) else progress_file_old
@@ -234,12 +235,13 @@ def main():
         
         # Create results directory
         model_subdir = 'classic' if MODEL_TYPE == 'classic' else 'deep'
-        results_path_new = os.path.join('experiments', model_subdir, MANUAL_EXPERIMENT_NAME, 'results')
+        experiment_subdir = 'binary' if EXPERIMENT_TYPE == 'bin' else 'multiclass'
+        results_path_new = os.path.join('experiments', model_subdir, experiment_subdir, MANUAL_EXPERIMENT_NAME, 'results')
         results_path_old = os.path.join('experiments', MANUAL_EXPERIMENT_NAME, 'results')
         # Use new structure, create if doesn't exist
         results_path = results_path_new
         os.makedirs(results_path, exist_ok=True)
-        
+
         # Load experiment data
         print("Carregando dados do experimento...")
         dict_info_names, confusion_matrices, history = load_experiment_data(MANUAL_EXPERIMENT_NAME)
